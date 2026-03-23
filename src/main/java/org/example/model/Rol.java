@@ -1,0 +1,43 @@
+package org.example.model;
+
+import jakarta.persistence.*;
+
+/**
+ * Representa los roles de seguridad en el sistema.
+ * Ejemplo: ROLE_ADMIN, ROLE_USER.
+ */
+@Entity
+@Table(name = "roles")
+public class Rol {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String nombre; // Deberá ser ROLE_ADMIN o ROLE_USER
+
+    public Rol() {
+    }
+
+    public Rol(String nombre) {
+        this.nombre = nombre;
+    }
+
+    // Getters y Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+}
