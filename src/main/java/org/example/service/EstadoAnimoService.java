@@ -21,7 +21,7 @@ public class EstadoAnimoService implements IEstadoAnimoService {
     @Override
     public EstadoAnimoDTO guardar(EstadoAnimoRequest request) {
         EstadoAnimo estado = new EstadoAnimo(
-                request.nombre(), request.emoji(), request.musicaUrl(), request.imagenUrl(),
+                request.nombre(), request.emoji(), request.iconUrl(), request.musicaUrl(), request.imagenUrl(),
                 request.colorPrimario(), request.colorSecundario(), request.fontFamily(), request.animationType()
         );
         return convertToDTO(repository.save(estado));
@@ -48,6 +48,7 @@ public class EstadoAnimoService implements IEstadoAnimoService {
 
         estado.setNombre(request.nombre());
         estado.setEmoji(request.emoji());
+        estado.setIconUrl(request.iconUrl());
         estado.setMusicaUrl(request.musicaUrl());
         estado.setImagenUrl(request.imagenUrl());
         estado.setColorPrimario(request.colorPrimario());
@@ -70,6 +71,7 @@ public class EstadoAnimoService implements IEstadoAnimoService {
                 estado.getId(),
                 estado.getNombre(),
                 estado.getEmoji(),
+                estado.getIconUrl(),
                 estado.getMusicaUrl(),
                 estado.getImagenUrl(),
                 estado.getColorPrimario(),

@@ -11,6 +11,9 @@ public record EstadoAnimoRequest(
     @Size(max = 10, message = "El emoji no puede exceder 10 caracteres")
     String emoji,
 
+    @Size(max = 1000, message = "La URL del icono no puede exceder 1000 caracteres")
+    String iconUrl,
+
     @Size(max = 1000, message = "La URL de música no puede exceder 1000 caracteres")
     String musicaUrl,
 

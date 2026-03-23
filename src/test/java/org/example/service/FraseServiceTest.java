@@ -36,7 +36,7 @@ class FraseServiceTest {
 
     @BeforeEach
     void setUp() {
-        feliz = new EstadoAnimo("FELIZ", "😊", null, null, "#FFD700", "#FFA500", "Poppins", "float");
+        feliz = new EstadoAnimo("FELIZ", "😊", null, null, null, "#FFD700", "#FFA500", "Poppins", "float");
         feliz.setId(1L);
 
         frasesFelices = new ArrayList<>();

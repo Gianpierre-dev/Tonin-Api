@@ -23,7 +23,10 @@ public class EstadoAnimo {
     private String emoji; // Guardaremos el emoji directamente (ej: "😊")
 
     @Column(length = 1000)
-    private String musicaUrl; // URL de la canción de fondo
+    private String iconUrl;
+
+    @Column(length = 1000)
+    private String musicaUrl;
 
     @Column(length = 1000)
     private String imagenUrl;
@@ -43,10 +46,11 @@ public class EstadoAnimo {
     public EstadoAnimo() {
     }
 
-    public EstadoAnimo(String nombre, String emoji, String musicaUrl, String imagenUrl,
+    public EstadoAnimo(String nombre, String emoji, String iconUrl, String musicaUrl, String imagenUrl,
                        String colorPrimario, String colorSecundario, String fontFamily, String animationType) {
         this.nombre = nombre;
         this.emoji = emoji;
+        this.iconUrl = iconUrl;
         this.musicaUrl = musicaUrl;
         this.imagenUrl = imagenUrl;
         this.colorPrimario = colorPrimario;
@@ -126,5 +130,13 @@ public class EstadoAnimo {
 
     public void setAnimationType(String animationType) {
         this.animationType = animationType;
+    }
+
+    public String getIconUrl() {
+        return iconUrl;
+    }
+
+    public void setIconUrl(String iconUrl) {
+        this.iconUrl = iconUrl;
     }
 }
