@@ -91,7 +91,11 @@ public class FraseService implements IFraseService {
                 frase.getEstadoAnimo().getNombre(),
                 frase.getEstadoAnimo().getEmoji(),
                 frase.getEstadoAnimo().getMusicaUrl(),
-                frase.getEstadoAnimo().getImagenUrl()
+                frase.getEstadoAnimo().getImagenUrl(),
+                frase.getEstadoAnimo().getColorPrimario(),
+                frase.getEstadoAnimo().getColorSecundario(),
+                frase.getEstadoAnimo().getFontFamily(),
+                frase.getEstadoAnimo().getAnimationType()
         );
         return new FraseDTO(frase.getId(), frase.getTexto(), estadoDTO);
     }
