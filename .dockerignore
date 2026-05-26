@@ -1,6 +1,7 @@
 .git
 .gitignore
 .idea
+.claude
 .mvn
 target
 *.md

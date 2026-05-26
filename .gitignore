@@ -40,3 +40,7 @@ build/
 
 ### Environment ###
 .env
+
+### AI tooling (puede contener credenciales en settings.local.json) ###
+.claude/
+.idea/
