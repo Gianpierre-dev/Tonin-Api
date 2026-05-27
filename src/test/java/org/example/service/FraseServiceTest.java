@@ -32,39 +32,38 @@ class FraseServiceTest {
     private FraseService fraseService;
 
     private EstadoAnimo feliz;
-    private List<Frase> frasesFelices;
+    private Frase frase1;
+    private Frase frase2;
 
     @BeforeEach
     void setUp() {
         feliz = new EstadoAnimo("FELIZ", "😊", null, null, null, "#FFD700", "#FFA500", "Poppins", "float");
         feliz.setId(1L);
 
-        frasesFelices = new ArrayList<>();
-        Frase f1 = new Frase("Frase 1", feliz); f1.setId(101L);
-        Frase f2 = new Frase("Frase 2", feliz); f2.setId(102L);
-        frasesFelices.add(f1);
-        frasesFelices.add(f2);
+        frase1 = new Frase("Frase 1", feliz);
+        frase1.setId(101L);
+        frase2 = new Frase("Frase 2", feliz);
+        frase2.setId(102L);
     }
 
     @Test
     void cuandoPidoFraseAleatoria_DebeRetornarUnaFraseValida() {
         when(estadoAnimoRepository.findByNombre("FELIZ")).thenReturn(Optional.of(feliz));
-        when(fraseRepository.findByEstadoAnimo(feliz)).thenReturn(frasesFelices);
+        when(fraseRepository.findRandomByEstadoAnimo(feliz)).thenReturn(Optional.of(frase1));
 
         Optional<FraseDTO> resultado = fraseService.obtenerFraseAleatoria("FELIZ", new ArrayList<>());
 
         assertTrue(resultado.isPresent());
         assertEquals("FELIZ", resultado.get().estadoAnimo().nombre());
-        verify(fraseRepository, times(1)).findByEstadoAnimo(feliz);
+        verify(fraseRepository, times(1)).findRandomByEstadoAnimo(feliz);
     }
 
     @Test
-    void cuandoExcluyoIds_DebeRetornarSoloLasNoExcluidas() {
+    void cuandoExcluyoIds_DebeUsarQueryConExcluidos() {
         List<Long> excluidos = List.of(101L);
-        Frase f2 = frasesFelices.get(1);
 
         when(estadoAnimoRepository.findByNombre("FELIZ")).thenReturn(Optional.of(feliz));
-        when(fraseRepository.findByEstadoAnimoAndIdNotIn(feliz, excluidos)).thenReturn(List.of(f2));
+        when(fraseRepository.findRandomByEstadoAnimoAndIdNotIn(feliz, excluidos)).thenReturn(Optional.of(frase2));
 
         Optional<FraseDTO> resultado = fraseService.obtenerFraseAleatoria("FELIZ", excluidos);
 
@@ -73,11 +72,11 @@ class FraseServiceTest {
     }
 
     @Test
-    void cuandoTodasEstanExcluidas_DebeRetornarVacio() {
+    void cuandoNoHayFrasesDisponibles_DebeRetornarVacio() {
         List<Long> excluidos = List.of(101L, 102L);
 
         when(estadoAnimoRepository.findByNombre("FELIZ")).thenReturn(Optional.of(feliz));
-        when(fraseRepository.findByEstadoAnimoAndIdNotIn(feliz, excluidos)).thenReturn(List.of());
+        when(fraseRepository.findRandomByEstadoAnimoAndIdNotIn(feliz, excluidos)).thenReturn(Optional.empty());
 
         Optional<FraseDTO> resultado = fraseService.obtenerFraseAleatoria("FELIZ", excluidos);
 

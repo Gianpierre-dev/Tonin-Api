@@ -5,10 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-/**
- * Entidad que representa una frase en el sistema.
- * Ahora se relaciona dinámicamente con un EstadoAnimo.
- */
 @Entity
 @Table(name = "frases")
 public class Frase {
@@ -23,40 +19,21 @@ public class Frase {
     private String texto;
 
     @NotNull(message = "Debes asignar un estado de ánimo")
-    @ManyToOne // Muchas frases pueden pertenecer a un mismo estado de ánimo
+    @ManyToOne
     @JoinColumn(name = "estado_animo_id", nullable = false)
     private EstadoAnimo estadoAnimo;
 
-    public Frase() {
-    }
+    public Frase() {}
 
     public Frase(String texto, EstadoAnimo estadoAnimo) {
         this.texto = texto;
         this.estadoAnimo = estadoAnimo;
     }
 
-    // Getters y Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getTexto() {
-        return texto;
-    }
-
-    public void setTexto(String texto) {
-        this.texto = texto;
-    }
-
-    public EstadoAnimo getEstadoAnimo() {
-        return estadoAnimo;
-    }
-
-    public void setEstadoAnimo(EstadoAnimo estadoAnimo) {
-        this.estadoAnimo = estadoAnimo;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getTexto() { return texto; }
+    public void setTexto(String texto) { this.texto = texto; }
+    public EstadoAnimo getEstadoAnimo() { return estadoAnimo; }
+    public void setEstadoAnimo(EstadoAnimo estadoAnimo) { this.estadoAnimo = estadoAnimo; }
 }

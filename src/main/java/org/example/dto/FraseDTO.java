@@ -1,11 +1,17 @@
 package org.example.dto;
 
-/**
- * Objeto de transferencia de datos para Frase.
- * Incluye la información del estado de ánimo asociado.
- */
+import org.example.model.Frase;
+
 public record FraseDTO(
     Long id,
     String texto,
     EstadoAnimoDTO estadoAnimo
-) {}
+) {
+    public static FraseDTO fromEntity(Frase frase) {
+        return new FraseDTO(
+            frase.getId(),
+            frase.getTexto(),
+            EstadoAnimoDTO.fromEntity(frase.getEstadoAnimo())
+        );
+    }
+}

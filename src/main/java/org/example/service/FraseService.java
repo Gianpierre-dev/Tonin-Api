@@ -1,6 +1,5 @@
 package org.example.service;
 
-import org.example.dto.EstadoAnimoDTO;
 import org.example.dto.FraseDTO;
 import org.example.dto.FraseRequest;
 import org.example.exception.ResourceNotFoundException;
@@ -10,7 +9,6 @@ import org.example.repository.EstadoAnimoRepository;
 import org.example.repository.FraseRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,20 +29,20 @@ public class FraseService implements IFraseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Estado de ánimo", request.estadoAnimoId()));
 
         Frase frase = new Frase(request.texto(), estado);
-        return convertToDTO(repository.save(frase));
+        return FraseDTO.fromEntity(repository.save(frase));
     }
 
     @Override
     public List<FraseDTO> obtenerTodas() {
         return repository.findAll().stream()
-                .map(this::convertToDTO)
+                .map(FraseDTO::fromEntity)
                 .toList();
     }
 
     @Override
     public FraseDTO obtenerPorId(Long id) {
         return repository.findById(id)
-                .map(this::convertToDTO)
+                .map(FraseDTO::fromEntity)
                 .orElseThrow(() -> new ResourceNotFoundException("Frase", id));
     }
 
@@ -58,7 +56,7 @@ public class FraseService implements IFraseService {
 
         frase.setTexto(request.texto());
         frase.setEstadoAnimo(estado);
-        return convertToDTO(repository.save(frase));
+        return FraseDTO.fromEntity(repository.save(frase));
     }
 
     @Override
@@ -75,29 +73,10 @@ public class FraseService implements IFraseService {
                 .orElse(null);
         if (estado == null) return Optional.empty();
 
-        List<Frase> disponibles = idsExcluidos.isEmpty()
-                ? repository.findByEstadoAnimo(estado)
-                : repository.findByEstadoAnimoAndIdNotIn(estado, idsExcluidos);
+        Optional<Frase> frase = idsExcluidos.isEmpty()
+                ? repository.findRandomByEstadoAnimo(estado)
+                : repository.findRandomByEstadoAnimoAndIdNotIn(estado, idsExcluidos);
 
-        if (disponibles.isEmpty()) return Optional.empty();
-
-        Collections.shuffle(disponibles);
-        return Optional.of(convertToDTO(disponibles.getFirst()));
-    }
-
-    private FraseDTO convertToDTO(Frase frase) {
-        EstadoAnimoDTO estadoDTO = new EstadoAnimoDTO(
-                frase.getEstadoAnimo().getId(),
-                frase.getEstadoAnimo().getNombre(),
-                frase.getEstadoAnimo().getEmoji(),
-                frase.getEstadoAnimo().getIconUrl(),
-                frase.getEstadoAnimo().getMusicaUrl(),
-                frase.getEstadoAnimo().getImagenUrl(),
-                frase.getEstadoAnimo().getColorPrimario(),
-                frase.getEstadoAnimo().getColorSecundario(),
-                frase.getEstadoAnimo().getFontFamily(),
-                frase.getEstadoAnimo().getAnimationType()
-        );
-        return new FraseDTO(frase.getId(), frase.getTexto(), estadoDTO);
+        return frase.map(FraseDTO::fromEntity);
     }
 }

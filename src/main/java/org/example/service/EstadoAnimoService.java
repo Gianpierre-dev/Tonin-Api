@@ -24,20 +24,20 @@ public class EstadoAnimoService implements IEstadoAnimoService {
                 request.nombre(), request.emoji(), request.iconUrl(), request.musicaUrl(), request.imagenUrl(),
                 request.colorPrimario(), request.colorSecundario(), request.fontFamily(), request.animationType()
         );
-        return convertToDTO(repository.save(estado));
+        return EstadoAnimoDTO.fromEntity(repository.save(estado));
     }
 
     @Override
     public List<EstadoAnimoDTO> obtenerTodos() {
         return repository.findAll().stream()
-                .map(this::convertToDTO)
+                .map(EstadoAnimoDTO::fromEntity)
                 .toList();
     }
 
     @Override
     public EstadoAnimoDTO obtenerPorId(Long id) {
         return repository.findById(id)
-                .map(this::convertToDTO)
+                .map(EstadoAnimoDTO::fromEntity)
                 .orElseThrow(() -> new ResourceNotFoundException("Estado de ánimo", id));
     }
 
@@ -55,7 +55,7 @@ public class EstadoAnimoService implements IEstadoAnimoService {
         estado.setColorSecundario(request.colorSecundario());
         estado.setFontFamily(request.fontFamily());
         estado.setAnimationType(request.animationType());
-        return convertToDTO(repository.save(estado));
+        return EstadoAnimoDTO.fromEntity(repository.save(estado));
     }
 
     @Override
@@ -64,20 +64,5 @@ public class EstadoAnimoService implements IEstadoAnimoService {
             throw new ResourceNotFoundException("Estado de ánimo", id);
         }
         repository.deleteById(id);
-    }
-
-    private EstadoAnimoDTO convertToDTO(EstadoAnimo estado) {
-        return new EstadoAnimoDTO(
-                estado.getId(),
-                estado.getNombre(),
-                estado.getEmoji(),
-                estado.getIconUrl(),
-                estado.getMusicaUrl(),
-                estado.getImagenUrl(),
-                estado.getColorPrimario(),
-                estado.getColorSecundario(),
-                estado.getFontFamily(),
-                estado.getAnimationType()
-        );
     }
 }
