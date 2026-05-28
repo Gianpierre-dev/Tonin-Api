@@ -58,7 +58,7 @@ public class StorageService {
 
             return endpoint + "/" + bucketName + "/" + key;
         } catch (IOException e) {
-            throw new BadRequestException("Error al subir el archivo: " + e.getMessage());
+            throw new BadRequestException("error.upload.failed", e.getMessage());
         }
     }
 
@@ -80,7 +80,7 @@ public class StorageService {
 
     private void validateFile(MultipartFile file, String subfolder) {
         if (file.isEmpty()) {
-            throw new BadRequestException("El archivo está vacío");
+            throw new BadRequestException("error.file.empty");
         }
 
         String contentType = file.getContentType();
@@ -88,15 +88,15 @@ public class StorageService {
         switch (subfolder) {
             case "imagenes" -> {
                 if (!ALLOWED_IMAGE_TYPES.contains(contentType)) {
-                    throw new BadRequestException("Tipo de imagen no permitido. Usa: JPEG, PNG, GIF o WebP");
+                    throw new BadRequestException("error.file.imagetype");
                 }
             }
             case "musica" -> {
                 if (!ALLOWED_AUDIO_TYPES.contains(contentType)) {
-                    throw new BadRequestException("Tipo de audio no permitido. Usa: MP3, WAV, OGG, MP4 o WebM");
+                    throw new BadRequestException("error.file.audiotype");
                 }
             }
-            default -> throw new BadRequestException("Subfolder no válido: " + subfolder);
+            default -> throw new BadRequestException("error.subfolder.invalid", subfolder);
         }
     }
 

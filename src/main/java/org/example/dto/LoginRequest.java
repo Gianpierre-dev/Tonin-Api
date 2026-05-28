@@ -3,9 +3,9 @@ package org.example.dto;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
-    @NotBlank(message = "El nombre de usuario es obligatorio")
+    @NotBlank(message = "{validation.username.notblank}")
     String username,
 
-    @NotBlank(message = "La contraseña es obligatoria")
+    @NotBlank(message = "{validation.password.notblank}")
     String password
 ) {}

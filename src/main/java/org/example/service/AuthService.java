@@ -8,6 +8,8 @@ import org.example.model.Rol;
 import org.example.model.Usuario;
 import org.example.repository.RolRepository;
 import org.example.repository.UsuarioRepository;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,25 +29,28 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final IJwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final MessageSource messageSource;
 
     public AuthService(AuthenticationManager authenticationManager,
                        UsuarioRepository usuarioRepository,
                        RolRepository rolRepository,
                        PasswordEncoder passwordEncoder,
                        IJwtService jwtService,
-                       UserDetailsService userDetailsService) {
+                       UserDetailsService userDetailsService,
+                       MessageSource messageSource) {
         this.authenticationManager = authenticationManager;
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.messageSource = messageSource;
     }
 
     @Transactional
     public String register(RegisterRequest request) {
         if (usuarioRepository.findByUsername(request.username()).isPresent()) {
-            throw new BadRequestException("El usuario ya existe");
+            throw new BadRequestException("error.user.exists");
         }
 
         inicializarRolesSiNoExisten();
@@ -58,18 +63,18 @@ public class AuthService {
         // El primer usuario del sistema se convierte en ADMIN
         if (usuarioRepository.count() == 0) {
             Rol adminRol = rolRepository.findByNombre("ROLE_ADMIN")
-                    .orElseThrow(() -> new BadRequestException("Rol ADMIN no encontrado"));
+                    .orElseThrow(() -> new BadRequestException("error.role.admin.notfound"));
             usuario.setRoles(Set.of(adminRol));
         } else {
             Rol userRol = rolRepository.findByNombre("ROLE_USER")
-                    .orElseThrow(() -> new BadRequestException("Rol USER no encontrado"));
+                    .orElseThrow(() -> new BadRequestException("error.role.user.notfound"));
             usuario.setRoles(Set.of(userRol));
         }
 
         usuarioRepository.save(usuario);
 
         String rolAsignado = usuario.getRoles().iterator().next().getNombre();
-        return "Usuario registrado con éxito. Rol asignado: " + rolAsignado;
+        return messageSource.getMessage("success.register", new Object[]{rolAsignado}, LocaleContextHolder.getLocale());
     }
 
     public AuthResponse login(LoginRequest request) {

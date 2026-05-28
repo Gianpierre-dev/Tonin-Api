@@ -11,6 +11,7 @@ import org.example.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.context.MessageSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,10 +22,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class AuthServiceTest {
@@ -35,6 +38,7 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     private IJwtService jwtService;
     private UserDetailsService userDetailsService;
+    private MessageSource messageSource;
     private AuthService authService;
 
     @BeforeEach
@@ -45,10 +49,16 @@ class AuthServiceTest {
         passwordEncoder = Mockito.mock(PasswordEncoder.class);
         jwtService = Mockito.mock(IJwtService.class);
         userDetailsService = Mockito.mock(UserDetailsService.class);
+        messageSource = Mockito.mock(MessageSource.class);
+
+        // El mensaje de éxito se resuelve vía MessageSource; embebemos el rol en la
+        // respuesta para poder verificarlo en los asserts.
+        when(messageSource.getMessage(eq("success.register"), any(), any(Locale.class)))
+                .thenAnswer(inv -> "Rol asignado: " + ((Object[]) inv.getArgument(1))[0]);
 
         authService = new AuthService(
                 authenticationManager, usuarioRepository, rolRepository,
-                passwordEncoder, jwtService, userDetailsService
+                passwordEncoder, jwtService, userDetailsService, messageSource
         );
     }
 

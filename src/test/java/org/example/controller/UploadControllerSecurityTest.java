@@ -21,28 +21,28 @@ class UploadControllerSecurityTest {
     private MockMvc mockMvc;
 
     @Test
-    void subirImagenSinToken_DebeDar403() throws Exception {
+    void subirImagenSinToken_DebeDar401() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "foto.png", "image/png", "contenido".getBytes()
         );
 
         mockMvc.perform(multipart("/api/uploads/imagen").file(file))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void subirMusicaSinToken_DebeDar403() throws Exception {
+    void subirMusicaSinToken_DebeDar401() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "cancion.mp3", "audio/mpeg", "contenido".getBytes()
         );
 
         mockMvc.perform(multipart("/api/uploads/musica").file(file))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void eliminarArchivoSinToken_DebeDar403() throws Exception {
+    void eliminarArchivoSinToken_DebeDar401() throws Exception {
         mockMvc.perform(delete("/api/uploads").param("url", "https://example.com/file.png"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }

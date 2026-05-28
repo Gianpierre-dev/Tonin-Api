@@ -28,11 +28,12 @@ class FraseControllerSecurityTest {
     }
 
     @Test
-    void cuandoIntentoCrearFraseSinToken_DebeDar403Forbidden() throws Exception {
+    void cuandoIntentoCrearFraseSinToken_DebeDar401() throws Exception {
+        // Sin token en un endpoint protegido: 401 (no autenticado), no 403
         mockMvc.perform(post("/api/frases")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"texto\": \"Frase de prueba\", \"estadoAnimoId\": 1}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

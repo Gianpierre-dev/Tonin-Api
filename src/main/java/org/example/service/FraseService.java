@@ -26,7 +26,7 @@ public class FraseService implements IFraseService {
     @Override
     public FraseDTO guardar(FraseRequest request) {
         EstadoAnimo estado = estadoRepository.findById(request.estadoAnimoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Estado de ánimo", request.estadoAnimoId()));
+                .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", request.estadoAnimoId()));
 
         Frase frase = new Frase(request.texto(), estado);
         return FraseDTO.fromEntity(repository.save(frase));
@@ -43,16 +43,16 @@ public class FraseService implements IFraseService {
     public FraseDTO obtenerPorId(Long id) {
         return repository.findById(id)
                 .map(FraseDTO::fromEntity)
-                .orElseThrow(() -> new ResourceNotFoundException("Frase", id));
+                .orElseThrow(() -> new ResourceNotFoundException("error.frase.notfound", id));
     }
 
     @Override
     public FraseDTO actualizar(Long id, FraseRequest request) {
         Frase frase = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Frase", id));
+                .orElseThrow(() -> new ResourceNotFoundException("error.frase.notfound", id));
 
         EstadoAnimo estado = estadoRepository.findById(request.estadoAnimoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Estado de ánimo", request.estadoAnimoId()));
+                .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", request.estadoAnimoId()));
 
         frase.setTexto(request.texto());
         frase.setEstadoAnimo(estado);
@@ -62,7 +62,7 @@ public class FraseService implements IFraseService {
     @Override
     public void eliminar(Long id) {
         if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("Frase", id);
+            throw new ResourceNotFoundException("error.frase.notfound", id);
         }
         repository.deleteById(id);
     }

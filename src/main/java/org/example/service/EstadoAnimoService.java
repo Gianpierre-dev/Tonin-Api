@@ -38,13 +38,13 @@ public class EstadoAnimoService implements IEstadoAnimoService {
     public EstadoAnimoDTO obtenerPorId(Long id) {
         return repository.findById(id)
                 .map(EstadoAnimoDTO::fromEntity)
-                .orElseThrow(() -> new ResourceNotFoundException("Estado de ánimo", id));
+                .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", id));
     }
 
     @Override
     public EstadoAnimoDTO actualizar(Long id, EstadoAnimoRequest request) {
         EstadoAnimo estado = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Estado de ánimo", id));
+                .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", id));
 
         estado.setNombre(request.nombre());
         estado.setEmoji(request.emoji());
@@ -61,7 +61,7 @@ public class EstadoAnimoService implements IEstadoAnimoService {
     @Override
     public void eliminar(Long id) {
         if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("Estado de ánimo", id);
+            throw new ResourceNotFoundException("error.estadoanimo.notfound", id);
         }
         repository.deleteById(id);
     }
