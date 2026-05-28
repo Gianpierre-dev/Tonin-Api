@@ -1,12 +1,14 @@
 package org.example.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.util.Map;
 
 public record EstadoAnimoRequest(
-    @NotBlank(message = "{validation.estado.nombre.notblank}")
-    String nombre,
+    @NotBlank(message = "{validation.estado.codigo.notblank}")
+    String codigo,
 
     @Size(max = 10, message = "{validation.estado.emoji.size}")
     String emoji,
@@ -30,5 +32,8 @@ public record EstadoAnimoRequest(
     String fontFamily,
 
     @Size(max = 30, message = "{validation.estado.animationtype.size}")
-    String animationType
+    String animationType,
+
+    @NotEmpty(message = "{validation.estado.traducciones.notempty}")
+    Map<String, String> traducciones
 ) {}

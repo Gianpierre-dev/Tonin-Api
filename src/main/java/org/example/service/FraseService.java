@@ -7,6 +7,7 @@ import org.example.model.EstadoAnimo;
 import org.example.model.Frase;
 import org.example.repository.EstadoAnimoRepository;
 import org.example.repository.FraseRepository;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,38 +26,47 @@ public class FraseService implements IFraseService {
 
     @Override
     public FraseDTO guardar(FraseRequest request) {
+        String locale = LocaleContextHolder.getLocale().getLanguage();
         EstadoAnimo estado = estadoRepository.findById(request.estadoAnimoId())
                 .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", request.estadoAnimoId()));
 
-        Frase frase = new Frase(request.texto(), estado);
-        return FraseDTO.fromEntity(repository.save(frase));
+        Frase frase = new Frase(estado);
+        request.traducciones().forEach(frase::addTraduccion);
+        return FraseDTO.fromEntity(repository.save(frase), locale);
     }
 
     @Override
     public List<FraseDTO> obtenerTodas() {
+        String locale = LocaleContextHolder.getLocale().getLanguage();
         return repository.findAll().stream()
-                .map(FraseDTO::fromEntity)
+                .map(f -> FraseDTO.fromEntity(f, locale))
                 .toList();
     }
 
     @Override
     public FraseDTO obtenerPorId(Long id) {
+        String locale = LocaleContextHolder.getLocale().getLanguage();
         return repository.findById(id)
-                .map(FraseDTO::fromEntity)
+                .map(f -> FraseDTO.fromEntity(f, locale))
                 .orElseThrow(() -> new ResourceNotFoundException("error.frase.notfound", id));
     }
 
     @Override
     public FraseDTO actualizar(Long id, FraseRequest request) {
+        String locale = LocaleContextHolder.getLocale().getLanguage();
         Frase frase = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("error.frase.notfound", id));
 
         EstadoAnimo estado = estadoRepository.findById(request.estadoAnimoId())
                 .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", request.estadoAnimoId()));
 
-        frase.setTexto(request.texto());
         frase.setEstadoAnimo(estado);
-        return FraseDTO.fromEntity(repository.save(frase));
+
+        // Reemplazar todas las traducciones
+        frase.getTraducciones().clear();
+        request.traducciones().forEach(frase::addTraduccion);
+
+        return FraseDTO.fromEntity(repository.save(frase), locale);
     }
 
     @Override
@@ -68,15 +78,15 @@ public class FraseService implements IFraseService {
     }
 
     @Override
-    public Optional<FraseDTO> obtenerFraseAleatoria(String nombreAnimo, List<Long> idsExcluidos) {
-        EstadoAnimo estado = estadoRepository.findByNombre(nombreAnimo)
-                .orElse(null);
+    public Optional<FraseDTO> obtenerFraseAleatoria(String codigoAnimo, List<Long> idsExcluidos) {
+        String locale = LocaleContextHolder.getLocale().getLanguage();
+        EstadoAnimo estado = estadoRepository.findByCodigoIgnoreCase(codigoAnimo).orElse(null);
         if (estado == null) return Optional.empty();
 
         Optional<Frase> frase = idsExcluidos.isEmpty()
                 ? repository.findRandomByEstadoAnimo(estado)
                 : repository.findRandomByEstadoAnimoAndIdNotIn(estado, idsExcluidos);
 
-        return frase.map(FraseDTO::fromEntity);
+        return frase.map(f -> FraseDTO.fromEntity(f, locale));
     }
 }

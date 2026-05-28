@@ -7,11 +7,11 @@ public record FraseDTO(
     String texto,
     EstadoAnimoDTO estadoAnimo
 ) {
-    public static FraseDTO fromEntity(Frase frase) {
+    public static FraseDTO fromEntity(Frase frase, String locale) {
         return new FraseDTO(
             frase.getId(),
-            frase.getTexto(),
-            EstadoAnimoDTO.fromEntity(frase.getEstadoAnimo())
+            frase.resolverTexto(locale),
+            EstadoAnimoDTO.fromEntity(frase.getEstadoAnimo(), locale)
         );
     }
 }

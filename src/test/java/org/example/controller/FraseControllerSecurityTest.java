@@ -32,7 +32,7 @@ class FraseControllerSecurityTest {
         // Sin token en un endpoint protegido: 401 (no autenticado), no 403
         mockMvc.perform(post("/api/frases")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"texto\": \"Frase de prueba\", \"estadoAnimoId\": 1}"))
+                        .content("{\"traducciones\": {\"es\": \"Frase de prueba\"}, \"estadoAnimoId\": 1}"))
                 .andExpect(status().isUnauthorized());
     }
 

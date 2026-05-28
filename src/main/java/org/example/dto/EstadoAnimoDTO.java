@@ -4,6 +4,7 @@ import org.example.model.EstadoAnimo;
 
 public record EstadoAnimoDTO(
     Long id,
+    String codigo,
     String nombre,
     String emoji,
     String iconUrl,
@@ -14,10 +15,11 @@ public record EstadoAnimoDTO(
     String fontFamily,
     String animationType
 ) {
-    public static EstadoAnimoDTO fromEntity(EstadoAnimo estado) {
+    public static EstadoAnimoDTO fromEntity(EstadoAnimo estado, String locale) {
         return new EstadoAnimoDTO(
             estado.getId(),
-            estado.getNombre(),
+            estado.getCodigo(),
+            estado.resolverNombre(locale),
             estado.getEmoji(),
             estado.getIconUrl(),
             estado.getMusicaUrl(),

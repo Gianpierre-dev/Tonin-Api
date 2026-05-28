@@ -1,9 +1,8 @@
 package org.example.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "frases")
@@ -13,27 +12,48 @@ public class Frase {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "El texto de la frase no puede estar vacío")
-    @Size(min = 5, max = 500, message = "La frase debe tener entre 5 y 500 caracteres")
-    @Column(nullable = false, length = 500)
-    private String texto;
-
-    @NotNull(message = "Debes asignar un estado de ánimo")
     @ManyToOne
     @JoinColumn(name = "estado_animo_id", nullable = false)
     private EstadoAnimo estadoAnimo;
 
+    /** Traducciones del texto para cada locale soportado. */
+    @OneToMany(mappedBy = "frase", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<FraseTraduccion> traducciones = new ArrayList<>();
+
     public Frase() {}
 
-    public Frase(String texto, EstadoAnimo estadoAnimo) {
-        this.texto = texto;
+    public Frase(EstadoAnimo estadoAnimo) {
         this.estadoAnimo = estadoAnimo;
+    }
+
+    /**
+     * Agrega una traducción del texto para el locale indicado.
+     * Mantiene la relación bidireccional con FraseTraduccion.
+     */
+    public void addTraduccion(String locale, String texto) {
+        traducciones.add(new FraseTraduccion(this, locale, texto));
+    }
+
+    /**
+     * Devuelve el texto traducido al locale solicitado.
+     * Si no existe, hace fallback a "es"; si tampoco existe, devuelve null.
+     */
+    public String resolverTexto(String locale) {
+        return traducciones.stream()
+                .filter(t -> t.getLocale().equalsIgnoreCase(locale))
+                .map(FraseTraduccion::getTexto)
+                .findFirst()
+                .orElseGet(() -> traducciones.stream()
+                        .filter(t -> t.getLocale().equalsIgnoreCase("es"))
+                        .map(FraseTraduccion::getTexto)
+                        .findFirst()
+                        .orElse(null));
     }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    public String getTexto() { return texto; }
-    public void setTexto(String texto) { this.texto = texto; }
     public EstadoAnimo getEstadoAnimo() { return estadoAnimo; }
     public void setEstadoAnimo(EstadoAnimo estadoAnimo) { this.estadoAnimo = estadoAnimo; }
+    public List<FraseTraduccion> getTraducciones() { return traducciones; }
+    public void setTraducciones(List<FraseTraduccion> traducciones) { this.traducciones = traducciones; }
 }

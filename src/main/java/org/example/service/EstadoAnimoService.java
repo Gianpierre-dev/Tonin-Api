@@ -5,6 +5,7 @@ import org.example.dto.EstadoAnimoRequest;
 import org.example.exception.ResourceNotFoundException;
 import org.example.model.EstadoAnimo;
 import org.example.repository.EstadoAnimoRepository;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,33 +21,38 @@ public class EstadoAnimoService implements IEstadoAnimoService {
 
     @Override
     public EstadoAnimoDTO guardar(EstadoAnimoRequest request) {
+        String locale = LocaleContextHolder.getLocale().getLanguage();
         EstadoAnimo estado = new EstadoAnimo(
-                request.nombre(), request.emoji(), request.iconUrl(), request.musicaUrl(), request.imagenUrl(),
+                request.codigo(), request.emoji(), request.iconUrl(), request.musicaUrl(), request.imagenUrl(),
                 request.colorPrimario(), request.colorSecundario(), request.fontFamily(), request.animationType()
         );
-        return EstadoAnimoDTO.fromEntity(repository.save(estado));
+        request.traducciones().forEach(estado::addTraduccion);
+        return EstadoAnimoDTO.fromEntity(repository.save(estado), locale);
     }
 
     @Override
     public List<EstadoAnimoDTO> obtenerTodos() {
+        String locale = LocaleContextHolder.getLocale().getLanguage();
         return repository.findAll().stream()
-                .map(EstadoAnimoDTO::fromEntity)
+                .map(e -> EstadoAnimoDTO.fromEntity(e, locale))
                 .toList();
     }
 
     @Override
     public EstadoAnimoDTO obtenerPorId(Long id) {
+        String locale = LocaleContextHolder.getLocale().getLanguage();
         return repository.findById(id)
-                .map(EstadoAnimoDTO::fromEntity)
+                .map(e -> EstadoAnimoDTO.fromEntity(e, locale))
                 .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", id));
     }
 
     @Override
     public EstadoAnimoDTO actualizar(Long id, EstadoAnimoRequest request) {
+        String locale = LocaleContextHolder.getLocale().getLanguage();
         EstadoAnimo estado = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", id));
 
-        estado.setNombre(request.nombre());
+        estado.setCodigo(request.codigo());
         estado.setEmoji(request.emoji());
         estado.setIconUrl(request.iconUrl());
         estado.setMusicaUrl(request.musicaUrl());
@@ -55,7 +61,12 @@ public class EstadoAnimoService implements IEstadoAnimoService {
         estado.setColorSecundario(request.colorSecundario());
         estado.setFontFamily(request.fontFamily());
         estado.setAnimationType(request.animationType());
-        return EstadoAnimoDTO.fromEntity(repository.save(estado));
+
+        // Reemplazar todas las traducciones
+        estado.getTraducciones().clear();
+        request.traducciones().forEach(estado::addTraduccion);
+
+        return EstadoAnimoDTO.fromEntity(repository.save(estado), locale);
     }
 
     @Override

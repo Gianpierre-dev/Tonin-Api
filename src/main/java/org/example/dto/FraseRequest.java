@@ -1,13 +1,12 @@
 package org.example.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import java.util.Map;
 
 public record FraseRequest(
-    @NotBlank(message = "{validation.frase.texto.notblank}")
-    @Size(min = 5, max = 500, message = "{validation.frase.texto.size}")
-    String texto,
+    @NotEmpty(message = "{validation.frase.traducciones.notempty}")
+    Map<String, String> traducciones,
 
     @NotNull(message = "{validation.frase.estadoanimoid.notnull}")
     Long estadoAnimoId
