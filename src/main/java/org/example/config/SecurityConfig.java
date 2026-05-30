@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -29,16 +30,19 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
     private final JwtAuthenticationEntryPoint jwtAuthEntryPoint;
+    private final RateLimitFilter rateLimitFilter;
 
     @Value("${cors.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
                           UserDetailsService userDetailsService,
-                          JwtAuthenticationEntryPoint jwtAuthEntryPoint) {
+                          JwtAuthenticationEntryPoint jwtAuthEntryPoint,
+                          RateLimitFilter rateLimitFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.userDetailsService = userDetailsService;
         this.jwtAuthEntryPoint = jwtAuthEntryPoint;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -46,6 +50,15 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
+            .headers(headers -> headers
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                    .preload(true)
+                )
+                .referrerPolicy(rp -> rp.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                .permissionsPolicyHeader(pp -> pp.policy("camera=(), microphone=(), geolocation=()"))
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
@@ -62,6 +75,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(eh -> eh.authenticationEntryPoint(jwtAuthEntryPoint))
             .authenticationProvider(authenticationProvider())
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -83,7 +97,9 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // Strength 12 (OWASP 2026): ~400-800ms por hash, imperceptible para el usuario,
+        // mucho mas costoso para ataques offline si se filtra la BD.
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean

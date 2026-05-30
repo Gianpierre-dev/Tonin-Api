@@ -62,6 +62,13 @@
             <version>2.25.60</version>
         </dependency>
 
+        <!-- Apache Tika: detección de tipo real por magic bytes en uploads -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+
         <!-- Seguridad y JWT -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

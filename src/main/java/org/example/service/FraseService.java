@@ -103,5 +103,10 @@ public class FraseService implements IFraseService {
                 || traducciones.get(LOCALE_DEFAULT).isBlank()) {
             throw new BadRequestException("error.traducciones.esrequired");
         }
+        for (String texto : traducciones.values()) {
+            if (texto != null && texto.length() > 500) {
+                throw new BadRequestException("error.traducciones.texto.size");
+            }
+        }
     }
 }

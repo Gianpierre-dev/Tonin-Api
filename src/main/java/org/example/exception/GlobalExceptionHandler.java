@@ -1,5 +1,8 @@
 package org.example.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -20,6 +23,8 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final MessageSource messageSource;
 
@@ -53,7 +58,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex, Locale locale) {
+    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex,
+                                                                    HttpServletRequest request,
+                                                                    Locale locale) {
+        log.warn("Login fallido desde IP {}", clientIp(request));
         return buildResponse(HttpStatus.UNAUTHORIZED, resolve("error.credentials.invalid", null, locale));
     }
 
@@ -81,6 +89,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex, Locale locale) {
+        // Stack trace al log (debugging), nunca al response (info leak).
+        log.error("Excepcion no manejada: {}", ex.getMessage(), ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, resolve("error.internal", null, locale));
     }
 
@@ -94,5 +104,14 @@ public class GlobalExceptionHandler {
         body.put("status", status.value());
         body.put("message", message);
         return new ResponseEntity<>(body, status);
+    }
+
+    private static String clientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            int comma = forwarded.indexOf(',');
+            return (comma > -1 ? forwarded.substring(0, comma) : forwarded).trim();
+        }
+        return request.getRemoteAddr();
     }
 }

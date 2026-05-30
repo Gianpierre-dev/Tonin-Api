@@ -8,6 +8,8 @@ import org.example.model.Rol;
 import org.example.model.Usuario;
 import org.example.repository.RolRepository;
 import org.example.repository.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,12 +18,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final AuthenticationManager authenticationManager;
     private final UsuarioRepository usuarioRepository;
@@ -47,9 +52,15 @@ public class AuthService {
         this.messageSource = messageSource;
     }
 
-    @Transactional
+    /**
+     * Isolation SERIALIZABLE evita una race condition (TOCTOU) en el chequeo
+     * count() == 0 del bootstrap del primer admin: dos registros simultaneos
+     * con la BD vacia no pueden ambos volverse admin.
+     */
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public String register(RegisterRequest request) {
         if (usuarioRepository.findByUsername(request.username()).isPresent()) {
+            log.warn("Intento de registro con username existente: {}", request.username());
             throw new BadRequestException("error.user.exists");
         }
 
@@ -74,6 +85,7 @@ public class AuthService {
         usuarioRepository.save(usuario);
 
         String rolAsignado = usuario.getRoles().iterator().next().getNombre();
+        log.info("Usuario registrado: {} con rol {}", usuario.getUsername(), rolAsignado);
         return messageSource.getMessage("success.register", new Object[]{rolAsignado}, LocaleContextHolder.getLocale());
     }
 

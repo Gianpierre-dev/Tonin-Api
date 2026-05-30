@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,13 +17,21 @@ import java.util.function.Function;
 @Service
 public class JwtService implements IJwtService {
 
+    private static final String ISSUER = "tonin-api";
+    private static final String AUDIENCE = "tonin-web";
+
     private final SecretKey key;
     private final long expirationMs;
 
     public JwtService(
             @Value("${jwt.secret}") String secret,
-            @Value("${jwt.expiration-ms:36000000}") long expirationMs) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+            @Value("${jwt.expiration-ms:1800000}") long expirationMs) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                "La variable de entorno JWT_SECRET es obligatoria y no puede estar vacia");
+        }
+        // UTF-8 explicito: el charset por defecto del JVM varia entre plataformas.
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }
 
@@ -33,6 +42,8 @@ public class JwtService implements IJwtService {
         return Jwts.builder()
                 .claims(claims)
                 .subject(userDetails.getUsername())
+                .issuer(ISSUER)
+                .audience().add(AUDIENCE).and()
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(key)
@@ -54,8 +65,12 @@ public class JwtService implements IJwtService {
     }
 
     private Claims extractAllClaims(String token) {
+        // Parser estricto: requiere issuer y audience esperados.
+        // Tokens emitidos por otros servicios (aunque compartan secret) son rechazados.
         return Jwts.parser()
                 .verifyWith(key)
+                .requireIssuer(ISSUER)
+                .requireAudience(AUDIENCE)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

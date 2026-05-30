@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.service.IJwtService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,6 +19,8 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final IJwtService jwtService;
     private final UserDetailsService userDetailsService;
@@ -59,6 +63,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Token malformado, expirado o con firma inválida: limpiamos el contexto
             // y dejamos que el AuthenticationEntryPoint devuelva 401 al chequear la
             // autorización aguas abajo (evita un 500 del handler genérico).
+            // Logueamos el motivo (sin el token completo) para observabilidad.
+            log.warn("Token JWT invalido o expirado: {}", ex.getMessage());
             SecurityContextHolder.clearContext();
         }
 

@@ -36,5 +36,6 @@ public record EstadoAnimoRequest(
     String animationType,
 
     @NotEmpty(message = "{validation.estado.traducciones.notempty}")
+    @Size(max = 10, message = "{validation.traducciones.size}")
     Map<String, String> traducciones
 ) {}

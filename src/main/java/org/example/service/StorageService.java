@@ -1,5 +1,6 @@
 package org.example.service;
 
+import org.apache.tika.Tika;
 import org.example.exception.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class StorageService {
     private final String bucketName;
     private final String folder;
     private final String endpoint;
+    private final Tika tika = new Tika();
 
     public StorageService(S3Client s3Client,
                           @Value("${wasabi.bucket-name}") String bucketName,
@@ -83,20 +85,32 @@ public class StorageService {
             throw new BadRequestException("error.file.empty");
         }
 
-        String contentType = file.getContentType();
-
+        Set<String> permitidos;
         switch (subfolder) {
-            case "imagenes" -> {
-                if (!ALLOWED_IMAGE_TYPES.contains(contentType)) {
-                    throw new BadRequestException("error.file.imagetype");
-                }
-            }
-            case "musica" -> {
-                if (!ALLOWED_AUDIO_TYPES.contains(contentType)) {
-                    throw new BadRequestException("error.file.audiotype");
-                }
-            }
+            case "imagenes" -> permitidos = ALLOWED_IMAGE_TYPES;
+            case "musica" -> permitidos = ALLOWED_AUDIO_TYPES;
             default -> throw new BadRequestException("error.subfolder.invalid", subfolder);
+        }
+
+        // 1) Whitelist sobre el Content-Type declarado por el cliente (puede ser falseado).
+        String contentType = file.getContentType();
+        if (!permitidos.contains(contentType)) {
+            if (permitidos == ALLOWED_IMAGE_TYPES) {
+                throw new BadRequestException("error.file.imagetype");
+            } else {
+                throw new BadRequestException("error.file.audiotype");
+            }
+        }
+
+        // 2) Validacion de magic bytes con Tika: detecta el tipo REAL del contenido.
+        // Si alguien manda un .exe con Content-Type: image/jpeg, aca se rechaza.
+        try {
+            String tipoReal = tika.detect(file.getInputStream());
+            if (!permitidos.contains(tipoReal)) {
+                throw new BadRequestException("error.file.invalidcontent");
+            }
+        } catch (IOException e) {
+            throw new BadRequestException("error.file.invalidcontent");
         }
     }
 

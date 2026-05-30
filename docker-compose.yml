@@ -4,9 +4,12 @@ services:
     container_name: tonin-db
     restart: always
     environment:
+      # Sin fallbacks: si las variables no estan seteadas, docker-compose falla
+      # explicitamente (mejor que arrancar con credenciales publicas).
+      # Definir en un archivo .env junto al compose o exportarlas en la shell.
       POSTGRES_DB: ${POSTGRES_DB:-tonindb}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     healthcheck:
