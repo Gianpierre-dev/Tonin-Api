@@ -20,8 +20,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // Mensaje sin el username: Spring Security lo convierte a BadCredentialsException
+        // antes de llegar al cliente, pero evita que el username aparezca en logs si
+        // alguna configuracion loguea UsernameNotFoundException en el futuro.
         Usuario usuario = usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 
         return new User(
                 usuario.getUsername(),
