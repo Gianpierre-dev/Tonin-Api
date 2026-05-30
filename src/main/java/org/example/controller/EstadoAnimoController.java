@@ -25,6 +25,11 @@ public class EstadoAnimoController {
         return ResponseEntity.ok(service.obtenerTodos());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<EstadoAnimoDTO> obtenerPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(service.obtenerPorId(id));
+    }
+
     @PostMapping
     public ResponseEntity<EstadoAnimoDTO> crearEstado(@Valid @RequestBody EstadoAnimoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.guardar(request));
