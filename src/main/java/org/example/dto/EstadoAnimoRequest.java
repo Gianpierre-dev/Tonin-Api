@@ -8,6 +8,7 @@ import java.util.Map;
 
 public record EstadoAnimoRequest(
     @NotBlank(message = "{validation.estado.codigo.notblank}")
+    @Pattern(regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$", message = "{validation.estado.codigo.pattern}")
     String codigo,
 
     @Size(max = 10, message = "{validation.estado.emoji.size}")

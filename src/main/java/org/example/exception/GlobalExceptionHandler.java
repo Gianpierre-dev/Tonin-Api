@@ -1,6 +1,7 @@
 package org.example.exception;
 
 import org.springframework.context.MessageSource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -69,6 +70,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleNotReadable(HttpMessageNotReadableException ex, Locale locale) {
         return buildResponse(HttpStatus.BAD_REQUEST, resolve("error.body.notreadable", null, locale));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex, Locale locale) {
+        // Red de seguridad: si una unique/FK constraint escapa al chequeo previo del service,
+        // devolvemos 400 con mensaje genérico de conflicto en vez de 500.
+        return buildResponse(HttpStatus.BAD_REQUEST, resolve("error.data.conflict", null, locale));
     }
 
     @ExceptionHandler(Exception.class)

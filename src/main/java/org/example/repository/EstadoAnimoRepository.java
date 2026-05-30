@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface EstadoAnimoRepository extends JpaRepository<EstadoAnimo, Long> {
     Optional<EstadoAnimo> findByCodigoIgnoreCase(String codigo);
+    boolean existsByCodigoIgnoreCase(String codigo);
 }
