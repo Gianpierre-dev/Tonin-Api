@@ -1,6 +1,7 @@
 package org.example.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.example.config.ClientIpResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
@@ -107,11 +108,6 @@ public class GlobalExceptionHandler {
     }
 
     private static String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            int comma = forwarded.indexOf(',');
-            return (comma > -1 ? forwarded.substring(0, comma) : forwarded).trim();
-        }
-        return request.getRemoteAddr();
+        return ClientIpResolver.resolver(request);
     }
 }

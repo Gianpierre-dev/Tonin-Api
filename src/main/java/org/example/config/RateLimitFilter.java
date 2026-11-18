@@ -53,7 +53,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        String clientIp = resolverIp(request);
+        String clientIp = ClientIpResolver.resolver(request);
 
         // Cleanup periódico para evitar crecimiento ilimitado del mapa
         if (invocationCounter.incrementAndGet() % CLEANUP_EVERY_N == 0) {
@@ -80,15 +80,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private String resolverIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            // Railway y otros proxies pueden encadenar varias IPs; tomamos la primera
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private void limpiarBucketsExpirados() {
