@@ -166,8 +166,14 @@ public class StorageService {
         }
     }
 
+    /**
+     * Extensión del nombre original, solo si es alfanumérica de 1 a 5 caracteres (".png", ".mp3").
+     * El nombre lo controla el cliente: cualquier otra cosa se descarta para que la key resultante
+     * siempre cumpla el formato que {@link #esKeyPropia} reconoce.
+     */
     private String getExtension(String filename) {
         if (filename == null || !filename.contains(".")) return "";
-        return filename.substring(filename.lastIndexOf("."));
+        String extension = filename.substring(filename.lastIndexOf("."));
+        return extension.matches("\\.[A-Za-z0-9]{1,5}") ? extension : "";
     }
 }

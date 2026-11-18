@@ -252,6 +252,7 @@ class ArchivosWasabiIntegrationTest {
 
     @Test
     void limpieza_RecorreTodasLasPaginasDelListado() {
+        estadoService.guardar(estado(codigoUnico(), null, null, urlImagen()));
         Instant viejo = Instant.now().minus(48, ChronoUnit.HOURS);
         String enPagina1 = "test/imagenes/" + UUID.randomUUID() + ".png";
         String enPagina2 = "test/musica/" + UUID.randomUUID() + ".mp3";
@@ -271,6 +272,7 @@ class ArchivosWasabiIntegrationTest {
 
     @Test
     void limpieza_EnModoSimulacion_NoBorraNada() {
+        estadoService.guardar(estado(codigoUnico(), null, null, urlImagen()));
         String huerfano = "test/imagenes/" + UUID.randomUUID() + ".png";
         bucketConObjetos(objeto(huerfano, Instant.now().minus(48, ChronoUnit.HOURS)));
 

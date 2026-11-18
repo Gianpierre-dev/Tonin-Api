@@ -111,6 +111,13 @@ public class ArchivoService {
     public List<String> limpiarHuerfanos(boolean borrar) {
         Set<String> urlsEnUso = estadoRepository.findArchivoUrlsEnUso();
 
+        // Salvaguarda: sin ninguna URL en uso (base vacía, restaurada vacía u otro entorno que
+        // comparte la carpeta), todo el bucket parecería huérfano. Es más seguro no borrar nada.
+        if (urlsEnUso.isEmpty()) {
+            log.warn("Limpieza abortada: ningún estado de ánimo referencia archivos");
+            return List.of();
+        }
+
         // Salvaguarda: si hay URLs en uso que parecen de la app pero no coinciden con el formato
         // actual (por ejemplo, cambió el endpoint), no se puede saber qué está en uso. Se aborta.
         List<String> irreconocibles = urlsEnUso.stream()

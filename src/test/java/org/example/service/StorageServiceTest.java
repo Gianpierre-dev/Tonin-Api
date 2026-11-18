@@ -5,7 +5,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
+import software.amazon.awssdk.services.s3.S3Client;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class StorageServiceTest {
 
@@ -61,6 +64,34 @@ class StorageServiceTest {
         assertThrows(BadRequestException.class, () ->
                 storageService.uploadFile(file, "documentos")
         );
+    }
+
+    private static final byte[] PNG = {
+            (byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n', 0, 0, 0, 0x0D, 'I', 'H', 'D', 'R'
+    };
+
+    private String keySubida(String nombreOriginal) {
+        S3Client s3 = mock(S3Client.class);
+        StorageService service = new StorageService(s3, "test-bucket", "tonin-api", "https://s3.us-west-1.wasabisys.com");
+        String url = service.uploadFile(new MockMultipartFile("file", nombreOriginal, "image/png", PNG), "imagenes");
+        String key = url.substring("https://s3.us-west-1.wasabisys.com/test-bucket/".length());
+        assertTrue(service.esKeyPropia(key), "la key subida debe ser reconocida como propia: " + key);
+        return key;
+    }
+
+    @Test
+    void subirArchivo_ConservaUnaExtensionNormal() {
+        assertTrue(keySubida("foto.PNG").endsWith(".PNG"));
+    }
+
+    @Test
+    void subirArchivo_ConExtensionRara_GeneraUnaKeyQueLaAppReconoce() {
+        // Antes la extensión venía tal cual del nombre del cliente y podía generar keys
+        // que la app luego no reconocía como propias (nunca se limpiaban).
+        assertFalse(keySubida("mi foto.p ng").contains(" "));
+        assertFalse(keySubida("x./../otra-app").contains(".."));
+        assertFalse(keySubida("sin-extension").contains("."));
+        assertFalse(keySubida("foto.ñandú").contains("ñ"));
     }
 
     @Test
