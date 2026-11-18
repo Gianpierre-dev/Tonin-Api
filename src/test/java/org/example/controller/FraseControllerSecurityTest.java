@@ -40,6 +40,7 @@ class FraseControllerSecurityTest {
     @Test
     void registroDeshabilitadoPorDefecto_Responde403() throws Exception {
         mockMvc.perform(post("/api/auth/register")
+                        .header("Accept-Language", "es")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\": \"intruso\", \"password\": \"password123\"}"))
                 .andExpect(status().isForbidden())

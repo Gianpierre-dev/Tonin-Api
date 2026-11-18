@@ -37,6 +37,8 @@ public class AuthService {
     private final UserDetailsService userDetailsService;
     private final MessageSource messageSource;
     private final boolean registroHabilitado;
+    /** Username reservado para el admin inicial (ADMIN_USERNAME): el registro no puede usarlo. */
+    private final String adminUsername;
 
     public AuthService(AuthenticationManager authenticationManager,
                        UsuarioRepository usuarioRepository,
@@ -45,7 +47,8 @@ public class AuthService {
                        IJwtService jwtService,
                        UserDetailsService userDetailsService,
                        MessageSource messageSource,
-                       @Value("${auth.registro.habilitado:false}") boolean registroHabilitado) {
+                       @Value("${auth.registro.habilitado:false}") boolean registroHabilitado,
+                       @Value("${admin.username:}") String adminUsername) {
         this.authenticationManager = authenticationManager;
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
@@ -54,6 +57,7 @@ public class AuthService {
         this.userDetailsService = userDetailsService;
         this.messageSource = messageSource;
         this.registroHabilitado = registroHabilitado;
+        this.adminUsername = adminUsername == null ? "" : adminUsername.trim();
     }
 
     /**
@@ -71,6 +75,12 @@ public class AuthService {
         if (Passwords.excedeLimiteBcrypt(request.password())) {
             throw new BadRequestException("error.password.bytes", Passwords.MAX_BYTES);
         }
+        // El username del admin queda reservado: si alguien lo registrara antes de que exista el
+        // admin, AdminBootstrap no podría crearlo y la app no arrancaría.
+        if (!adminUsername.isEmpty() && adminUsername.equalsIgnoreCase(request.username().trim())) {
+            log.warn("Intento de registro con el username reservado del administrador");
+            throw new BadRequestException("error.user.exists");
+        }
         if (usuarioRepository.findByUsername(request.username()).isPresent()) {
             log.warn("Intento de registro con username existente: {}", request.username());
             throw new BadRequestException("error.user.exists");
@@ -84,7 +94,10 @@ public class AuthService {
         try {
             usuarioRepository.saveAndFlush(usuario);
         } catch (DataIntegrityViolationException e) {
-            // Otro registro con el mismo username ganó la carrera entre el chequeo y el insert.
+            // Lo esperable: otro registro con el mismo username ganó la carrera entre el chequeo y
+            // el insert. Se loguea la causa por si fuera otra restricción.
+            log.warn("Violación de integridad al registrar '{}': {}", request.username(),
+                    e.getMostSpecificCause().getMessage());
             throw new BadRequestException("error.user.exists");
         }
 

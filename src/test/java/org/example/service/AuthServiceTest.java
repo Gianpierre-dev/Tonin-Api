@@ -64,7 +64,18 @@ class AuthServiceTest {
 
     private AuthService authService(boolean registroHabilitado) {
         return new AuthService(authenticationManager, usuarioRepository, rolRepository,
-                passwordEncoder, jwtService, userDetailsService, messageSource, registroHabilitado);
+                passwordEncoder, jwtService, userDetailsService, messageSource, registroHabilitado, "jefe");
+    }
+
+    @Test
+    void registroConElUsernameReservadoDelAdmin_SeRechaza() {
+        // Si el registro está abierto antes de que exista el admin, nadie debe poder quedarse
+        // con ADMIN_USERNAME: AdminBootstrap fallaría en cada arranque.
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> authService(true).register(new RegisterRequest("JEFE", "password123")));
+
+        assertEquals("error.user.exists", ex.getMessage());
+        verify(usuarioRepository, never()).saveAndFlush(any());
     }
 
     // --- Hallazgo 11: el registro público no crea admins y está deshabilitado por defecto ---
