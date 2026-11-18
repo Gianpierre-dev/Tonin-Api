@@ -1,6 +1,7 @@
 package org.example.service;
 
 import org.example.dto.FraseDTO;
+import org.example.exception.ResourceNotFoundException;
 import org.example.model.EstadoAnimo;
 import org.example.model.Frase;
 import org.example.repository.EstadoAnimoRepository;
@@ -56,10 +57,9 @@ class FraseServiceTest {
         when(estadoAnimoRepository.findByCodigoIgnoreCase("FELIZ")).thenReturn(Optional.of(feliz));
         when(fraseRepository.findRandomByEstadoAnimo(feliz)).thenReturn(Optional.of(frase1));
 
-        Optional<FraseDTO> resultado = fraseService.obtenerFraseAleatoria("FELIZ", new ArrayList<>());
+        FraseDTO resultado = fraseService.obtenerFraseAleatoria("FELIZ", new ArrayList<>());
 
-        assertTrue(resultado.isPresent());
-        assertEquals("Feliz", resultado.get().estadoAnimo().nombre());
+        assertEquals("Feliz", resultado.estadoAnimo().nombre());
         verify(fraseRepository, times(1)).findRandomByEstadoAnimo(feliz);
     }
 
@@ -70,21 +70,20 @@ class FraseServiceTest {
         when(estadoAnimoRepository.findByCodigoIgnoreCase("FELIZ")).thenReturn(Optional.of(feliz));
         when(fraseRepository.findRandomByEstadoAnimoAndIdNotIn(feliz, excluidos)).thenReturn(Optional.of(frase2));
 
-        Optional<FraseDTO> resultado = fraseService.obtenerFraseAleatoria("FELIZ", excluidos);
+        FraseDTO resultado = fraseService.obtenerFraseAleatoria("FELIZ", excluidos);
 
-        assertTrue(resultado.isPresent());
-        assertEquals(102L, resultado.get().id());
+        assertEquals(102L, resultado.id());
     }
 
     @Test
-    void cuandoNoHayFrasesDisponibles_DebeRetornarVacio() {
+    void cuandoNoHayFrasesDisponibles_DebeLanzarAgotadas() {
         List<Long> excluidos = List.of(101L, 102L);
 
         when(estadoAnimoRepository.findByCodigoIgnoreCase("FELIZ")).thenReturn(Optional.of(feliz));
         when(fraseRepository.findRandomByEstadoAnimoAndIdNotIn(feliz, excluidos)).thenReturn(Optional.empty());
 
-        Optional<FraseDTO> resultado = fraseService.obtenerFraseAleatoria("FELIZ", excluidos);
-
-        assertFalse(resultado.isPresent());
+        ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
+                () -> fraseService.obtenerFraseAleatoria("FELIZ", excluidos));
+        assertEquals("error.frase.agotadas", ex.getMessage());
     }
 }

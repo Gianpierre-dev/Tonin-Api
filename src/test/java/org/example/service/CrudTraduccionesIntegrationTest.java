@@ -170,6 +170,60 @@ class CrudTraduccionesIntegrationTest {
         assertThat(estadoService.obtenerPorId(creado.id()).nombre()).isEqualTo("Feliz");
     }
 
+    // --- Hallazgo 6: solo se aceptan los locales que la app sirve (es, en) ---
+
+    @Test
+    void localeNoSoportado_SeRechaza() {
+        EstadoAnimoDTO e = crearEstado();
+
+        for (String locale : new String[]{"fr", "en-US", "english"}) {
+            assertThatThrownBy(() -> fraseService.guardar(new FraseRequest(Map.of("es", "Hola", locale, "x"), e.id())))
+                    .as(locale)
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessage("error.traducciones.locale.invalid");
+        }
+    }
+
+    @Test
+    void localeEnMayusculas_SeNormaliza() {
+        EstadoAnimoDTO e = crearEstado();
+
+        FraseDTO creada = fraseService.guardar(new FraseRequest(Map.of("ES", "Hola", "En", "Hello"), e.id()));
+
+        assertThat(creada.traducciones()).containsEntry("es", "Hola").containsEntry("en", "Hello").hasSize(2);
+    }
+
+    @Test
+    void localeRepetidoConDistintasMayusculas_SeRechaza() {
+        EstadoAnimoDTO e = crearEstado();
+
+        assertThatThrownBy(() -> fraseService.guardar(new FraseRequest(Map.of("es", "Hola", "ES", "Otra"), e.id())))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("error.traducciones.locale.duplicated");
+    }
+
+    // --- Hallazgo 7: el nombre de un estado no puede exceder la columna (255) ---
+
+    @Test
+    void nombreDeEstadoMuyLargo_SeRechazaConErrorDeValidacion() {
+        assertThatThrownBy(() -> estadoService.guardar(estado(codigoUnico(), Map.of("es", "a".repeat(256)))))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("error.traducciones.texto.size")
+                .satisfies(ex -> assertThat(((BadRequestException) ex).getArgs()).containsExactly(255));
+
+        assertThat(estadoService.guardar(estado(codigoUnico(), Map.of("es", "a".repeat(255)))).nombre()).hasSize(255);
+    }
+
+    @Test
+    void textoDeFraseSigueAceptando500Caracteres() {
+        EstadoAnimoDTO e = crearEstado();
+
+        assertThat(fraseService.guardar(new FraseRequest(Map.of("es", "a".repeat(500)), e.id())).texto()).hasSize(500);
+        assertThatThrownBy(() -> fraseService.guardar(new FraseRequest(Map.of("es", "a".repeat(501)), e.id())))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("error.traducciones.texto.size");
+    }
+
     @Test
     void espanolEnBlancoSigueSiendoObligatorio() {
         EstadoAnimoDTO e = crearEstado();

@@ -34,7 +34,7 @@ public class EstadoAnimoService implements IEstadoAnimoService {
     @Transactional
     public EstadoAnimoDTO guardar(EstadoAnimoRequest request) {
         String locale = LocaleContextHolder.getLocale().getLanguage();
-        Map<String, String> traducciones = Traducciones.normalizarYValidar(request.traducciones());
+        Map<String, String> traducciones = Traducciones.normalizarYValidar(request.traducciones(), Traducciones.MAX_NOMBRE_ESTADO);
         if (repository.existsByCodigoIgnoreCase(request.codigo())) {
             throw new BadRequestException("error.codigo.exists");
         }
@@ -66,7 +66,7 @@ public class EstadoAnimoService implements IEstadoAnimoService {
     @Transactional
     public EstadoAnimoDTO actualizar(Long id, EstadoAnimoRequest request) {
         String locale = LocaleContextHolder.getLocale().getLanguage();
-        Map<String, String> traducciones = Traducciones.normalizarYValidar(request.traducciones());
+        Map<String, String> traducciones = Traducciones.normalizarYValidar(request.traducciones(), Traducciones.MAX_NOMBRE_ESTADO);
         EstadoAnimo estado = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", id));
 

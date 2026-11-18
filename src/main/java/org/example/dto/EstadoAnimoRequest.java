@@ -8,6 +8,7 @@ import java.util.Map;
 
 public record EstadoAnimoRequest(
     @NotBlank(message = "{validation.estado.codigo.notblank}")
+    @Size(max = 50, message = "{validation.estado.codigo.size}")
     @Pattern(regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$", message = "{validation.estado.codigo.pattern}")
     String codigo,
 
@@ -15,12 +16,15 @@ public record EstadoAnimoRequest(
     String emoji,
 
     @Size(max = 1000, message = "{validation.estado.iconurl.size}")
+    @Pattern(regexp = URL_HTTP, message = "{validation.estado.url.pattern}")
     String iconUrl,
 
     @Size(max = 1000, message = "{validation.estado.musicaurl.size}")
+    @Pattern(regexp = URL_HTTP, message = "{validation.estado.url.pattern}")
     String musicaUrl,
 
     @Size(max = 1000, message = "{validation.estado.imagenurl.size}")
+    @Pattern(regexp = URL_HTTP, message = "{validation.estado.url.pattern}")
     String imagenUrl,
 
     @Pattern(regexp = "^#[0-9A-Fa-f]{6}$", message = "{validation.estado.colorprimario.pattern}")
@@ -38,4 +42,10 @@ public record EstadoAnimoRequest(
     @NotEmpty(message = "{validation.estado.traducciones.notempty}")
     @Size(max = 10, message = "{validation.traducciones.size}")
     Map<String, String> traducciones
-) {}
+) {
+    /**
+     * URL absoluta http(s) con host y sin espacios. Bloquea esquemas como javascript: o data:,
+     * que el front podría terminar usando en un src o href. Un valor null sigue permitido.
+     */
+    static final String URL_HTTP = "^https?://[^\\s/?#]+(?:[/?#]\\S*)?$";
+}

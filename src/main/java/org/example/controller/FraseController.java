@@ -50,8 +50,6 @@ public class FraseController {
     public ResponseEntity<FraseDTO> obtenerFraseAleatoria(
             @RequestParam String animo,
             @RequestParam(required = false, defaultValue = "") List<Long> excluidos) {
-        return service.obtenerFraseAleatoria(animo, excluidos)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(service.obtenerFraseAleatoria(animo, excluidos));
     }
 }
