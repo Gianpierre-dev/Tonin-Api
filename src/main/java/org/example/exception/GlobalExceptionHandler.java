@@ -43,6 +43,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, resolve(ex.getMessage(), ex.getArgs(), locale));
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<Map<String, Object>> handleForbidden(ForbiddenException ex, Locale locale) {
+        return buildResponse(HttpStatus.FORBIDDEN, resolve(ex.getMessage(), ex.getArgs(), locale));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         // Los mensajes ya vienen resueltos por idioma: el validator está conectado al

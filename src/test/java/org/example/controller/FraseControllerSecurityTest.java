@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -34,6 +35,15 @@ class FraseControllerSecurityTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"traducciones\": {\"es\": \"Frase de prueba\"}, \"estadoAnimoId\": 1}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void registroDeshabilitadoPorDefecto_Responde403() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\": \"intruso\", \"password\": \"password123\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("El registro de usuarios está deshabilitado"));
     }
 
     @Test

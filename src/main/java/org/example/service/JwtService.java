@@ -10,8 +10,6 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 @Service
@@ -19,6 +17,7 @@ public class JwtService implements IJwtService {
 
     private static final String ISSUER = "tonin-api";
     private static final String AUDIENCE = "tonin-web";
+    private static final String CLAIM_USER_ID = "uid";
 
     private final SecretKey key;
     private final long expirationMs;
@@ -35,12 +34,17 @@ public class JwtService implements IJwtService {
         this.expirationMs = expirationMs;
     }
 
+    /**
+     * El token lleva el username (subject) y el id del usuario (claim "uid"). Los roles NO van en
+     * el token: se recargan de la BD en cada request, así un cambio de rol aplica de inmediato.
+     */
     public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", userDetails.getAuthorities());
+        if (!(userDetails instanceof UsuarioPrincipal principal)) {
+            throw new IllegalArgumentException("Se esperaba un UsuarioPrincipal para emitir el token");
+        }
 
         return Jwts.builder()
-                .claims(claims)
+                .claim(CLAIM_USER_ID, principal.getId())
                 .subject(userDetails.getUsername())
                 .issuer(ISSUER)
                 .audience().add(AUDIENCE).and()
@@ -50,9 +54,19 @@ public class JwtService implements IJwtService {
                 .compact();
     }
 
+    /**
+     * Válido si el username y el id coinciden con el usuario actual de la BD y no expiró. Comparar
+     * el id evita que un token de un usuario borrado sirva para otro creado con el mismo username.
+     * Los tokens sin "uid" (formato anterior) se rechazan.
+     */
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        final Claims claims = extractAllClaims(token);
+        final Long userId = claims.get(CLAIM_USER_ID, Long.class);
+        return userDetails instanceof UsuarioPrincipal principal
+                && claims.getSubject().equals(principal.getUsername())
+                && userId != null
+                && userId.equals(principal.getId())
+                && !claims.getExpiration().before(new Date());
     }
 
     public String extractUsername(String token) {
@@ -76,7 +90,4 @@ public class JwtService implements IJwtService {
                 .getPayload();
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractClaim(token, Claims::getExpiration).before(new Date());
-    }
 }

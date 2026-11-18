@@ -4,22 +4,23 @@ import org.example.dto.AuthResponse;
 import org.example.dto.LoginRequest;
 import org.example.dto.RegisterRequest;
 import org.example.exception.BadRequestException;
+import org.example.exception.ForbiddenException;
 import org.example.model.Rol;
 import org.example.model.Usuario;
 import org.example.repository.RolRepository;
 import org.example.repository.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 
@@ -35,6 +36,7 @@ public class AuthService {
     private final IJwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final MessageSource messageSource;
+    private final boolean registroHabilitado;
 
     public AuthService(AuthenticationManager authenticationManager,
                        UsuarioRepository usuarioRepository,
@@ -42,7 +44,8 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        IJwtService jwtService,
                        UserDetailsService userDetailsService,
-                       MessageSource messageSource) {
+                       MessageSource messageSource,
+                       @Value("${auth.registro.habilitado:false}") boolean registroHabilitado) {
         this.authenticationManager = authenticationManager;
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
@@ -50,43 +53,44 @@ public class AuthService {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.messageSource = messageSource;
+        this.registroHabilitado = registroHabilitado;
     }
 
     /**
-     * Isolation SERIALIZABLE evita una race condition (TOCTOU) en el chequeo
-     * count() == 0 del bootstrap del primer admin: dos registros simultaneos
-     * con la BD vacia no pueden ambos volverse admin.
+     * Registro público. Está deshabilitado por defecto (auth.registro.habilitado) y nunca crea
+     * administradores: el admin inicial lo crea {@link AdminBootstrap} desde el entorno.
+     *
+     * <p>Sin transacción SERIALIZABLE: el hash de BCrypt (cientos de ms) se calcula fuera de
+     * cualquier transacción y, si dos registros simultáneos usan el mismo username, la restricción
+     * única de la BD decide y el perdedor recibe error.user.exists en vez de un 500.</p>
      */
-    @Transactional(isolation = Isolation.SERIALIZABLE)
     public String register(RegisterRequest request) {
+        if (!registroHabilitado) {
+            throw new ForbiddenException("error.register.disabled");
+        }
+        if (Passwords.excedeLimiteBcrypt(request.password())) {
+            throw new BadRequestException("error.password.bytes", Passwords.MAX_BYTES);
+        }
         if (usuarioRepository.findByUsername(request.username()).isPresent()) {
             log.warn("Intento de registro con username existente: {}", request.username());
             throw new BadRequestException("error.user.exists");
         }
 
-        inicializarRolesSiNoExisten();
+        Rol userRol = rolRepository.findByNombre(AdminBootstrap.ROLE_USER)
+                .orElseThrow(() -> new BadRequestException("error.role.user.notfound"));
+        Usuario usuario = new Usuario(request.username(), passwordEncoder.encode(request.password()));
+        usuario.setRoles(Set.of(userRol));
 
-        Usuario usuario = new Usuario(
-                request.username(),
-                passwordEncoder.encode(request.password())
-        );
-
-        // El primer usuario del sistema se convierte en ADMIN
-        if (usuarioRepository.count() == 0) {
-            Rol adminRol = rolRepository.findByNombre("ROLE_ADMIN")
-                    .orElseThrow(() -> new BadRequestException("error.role.admin.notfound"));
-            usuario.setRoles(Set.of(adminRol));
-        } else {
-            Rol userRol = rolRepository.findByNombre("ROLE_USER")
-                    .orElseThrow(() -> new BadRequestException("error.role.user.notfound"));
-            usuario.setRoles(Set.of(userRol));
+        try {
+            usuarioRepository.saveAndFlush(usuario);
+        } catch (DataIntegrityViolationException e) {
+            // Otro registro con el mismo username ganó la carrera entre el chequeo y el insert.
+            throw new BadRequestException("error.user.exists");
         }
 
-        usuarioRepository.save(usuario);
-
-        String rolAsignado = usuario.getRoles().iterator().next().getNombre();
-        log.info("Usuario registrado: {} con rol {}", usuario.getUsername(), rolAsignado);
-        return messageSource.getMessage("success.register", new Object[]{rolAsignado}, LocaleContextHolder.getLocale());
+        log.info("Usuario registrado: {} con rol {}", usuario.getUsername(), userRol.getNombre());
+        return messageSource.getMessage("success.register", new Object[]{userRol.getNombre()},
+                LocaleContextHolder.getLocale());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -97,12 +101,5 @@ public class AuthService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.username());
         String jwt = jwtService.generateToken(userDetails);
         return new AuthResponse(jwt);
-    }
-
-    private void inicializarRolesSiNoExisten() {
-        if (rolRepository.count() == 0) {
-            rolRepository.save(new Rol("ROLE_ADMIN"));
-            rolRepository.save(new Rol("ROLE_USER"));
-        }
     }
 }

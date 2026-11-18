@@ -3,7 +3,6 @@ package org.example.service;
 import org.example.model.Usuario;
 import org.example.repository.UsuarioRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -26,7 +25,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         Usuario usuario = usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 
-        return new User(
+        return new UsuarioPrincipal(
+                usuario.getId(),
                 usuario.getUsername(),
                 usuario.getPassword(),
                 usuario.getRoles().stream()
