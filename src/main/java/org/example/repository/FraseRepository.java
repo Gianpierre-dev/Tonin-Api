@@ -17,6 +17,8 @@ public interface FraseRepository extends JpaRepository<Frase, Long> {
 
     List<Frase> findByEstadoAnimoAndIdNotIn(EstadoAnimo estadoAnimo, List<Long> ids);
 
+    long countByEstadoAnimoId(Long estadoAnimoId);
+
     @Query("SELECT f FROM Frase f WHERE f.estadoAnimo = :estado ORDER BY FUNCTION('RANDOM') LIMIT 1")
     Optional<Frase> findRandomByEstadoAnimo(@Param("estado") EstadoAnimo estado);
 

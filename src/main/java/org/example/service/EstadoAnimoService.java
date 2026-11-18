@@ -6,26 +6,30 @@ import org.example.exception.BadRequestException;
 import org.example.exception.ResourceNotFoundException;
 import org.example.model.EstadoAnimo;
 import org.example.repository.EstadoAnimoRepository;
+import org.example.repository.FraseRepository;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class EstadoAnimoService implements IEstadoAnimoService {
 
-    private static final String LOCALE_DEFAULT = "es";
-
     private final EstadoAnimoRepository repository;
+    private final FraseRepository fraseRepository;
 
-    public EstadoAnimoService(EstadoAnimoRepository repository) {
+    public EstadoAnimoService(EstadoAnimoRepository repository, FraseRepository fraseRepository) {
         this.repository = repository;
+        this.fraseRepository = fraseRepository;
     }
 
     @Override
+    @Transactional
     public EstadoAnimoDTO guardar(EstadoAnimoRequest request) {
         String locale = LocaleContextHolder.getLocale().getLanguage();
-        validarTraduccionEsRequerida(request.traducciones());
+        Map<String, String> traducciones = Traducciones.normalizarYValidar(request.traducciones());
         if (repository.existsByCodigoIgnoreCase(request.codigo())) {
             throw new BadRequestException("error.codigo.exists");
         }
@@ -33,7 +37,7 @@ public class EstadoAnimoService implements IEstadoAnimoService {
                 request.codigo(), request.emoji(), request.iconUrl(), request.musicaUrl(), request.imagenUrl(),
                 request.colorPrimario(), request.colorSecundario(), request.fontFamily(), request.animationType()
         );
-        request.traducciones().forEach(estado::addTraduccion);
+        traducciones.forEach(estado::addTraduccion);
         return EstadoAnimoDTO.fromEntity(repository.save(estado), locale);
     }
 
@@ -54,9 +58,10 @@ public class EstadoAnimoService implements IEstadoAnimoService {
     }
 
     @Override
+    @Transactional
     public EstadoAnimoDTO actualizar(Long id, EstadoAnimoRequest request) {
         String locale = LocaleContextHolder.getLocale().getLanguage();
-        validarTraduccionEsRequerida(request.traducciones());
+        Map<String, String> traducciones = Traducciones.normalizarYValidar(request.traducciones());
         EstadoAnimo estado = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", id));
 
@@ -73,33 +78,22 @@ public class EstadoAnimoService implements IEstadoAnimoService {
         estado.setColorSecundario(request.colorSecundario());
         estado.setFontFamily(request.fontFamily());
         estado.setAnimationType(request.animationType());
-
-        // Reemplazar todas las traducciones
-        estado.getTraducciones().clear();
-        request.traducciones().forEach(estado::addTraduccion);
+        estado.sincronizarTraducciones(traducciones);
 
         return EstadoAnimoDTO.fromEntity(repository.save(estado), locale);
     }
 
     @Override
+    @Transactional
     public void eliminar(Long id) {
         if (!repository.existsById(id)) {
             throw new ResourceNotFoundException("error.estadoanimo.notfound", id);
         }
+        // Borrar un estado no debe arrastrar sus frases: se exige reasignarlas o borrarlas antes.
+        long frases = fraseRepository.countByEstadoAnimoId(id);
+        if (frases > 0) {
+            throw new BadRequestException("error.estadoanimo.hasfrases", frases);
+        }
         repository.deleteById(id);
-    }
-
-    private void validarTraduccionEsRequerida(java.util.Map<String, String> traducciones) {
-        if (traducciones == null
-                || !traducciones.containsKey(LOCALE_DEFAULT)
-                || traducciones.get(LOCALE_DEFAULT) == null
-                || traducciones.get(LOCALE_DEFAULT).isBlank()) {
-            throw new BadRequestException("error.traducciones.esrequired");
-        }
-        for (String texto : traducciones.values()) {
-            if (texto != null && texto.length() > 500) {
-                throw new BadRequestException("error.traducciones.texto.size");
-            }
-        }
     }
 }
