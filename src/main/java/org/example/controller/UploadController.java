@@ -1,6 +1,7 @@
 package org.example.controller;
 
 import org.example.dto.UploadResponse;
+import org.example.service.ArchivoService;
 import org.example.service.StorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -13,9 +14,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class UploadController {
 
     private final StorageService storageService;
+    private final ArchivoService archivoService;
 
-    public UploadController(StorageService storageService) {
+    public UploadController(StorageService storageService, ArchivoService archivoService) {
         this.storageService = storageService;
+        this.archivoService = archivoService;
     }
 
     @PostMapping(value = "/imagen", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -32,7 +35,7 @@ public class UploadController {
 
     @DeleteMapping
     public ResponseEntity<Void> eliminarArchivo(@RequestParam String url) {
-        storageService.deleteFile(url);
+        archivoService.eliminarArchivoSuelto(url);
         return ResponseEntity.noContent().build();
     }
 }

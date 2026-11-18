@@ -8,14 +8,23 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 public class StorageService {
+
+    private static final List<String> SUBCARPETAS = List.of("imagenes", "musica");
 
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
             "image/jpeg", "image/png", "image/gif", "image/webp"
@@ -29,6 +38,7 @@ public class StorageService {
     private final String bucketName;
     private final String folder;
     private final String endpoint;
+    private final Pattern keyPropiaPattern;
     private final Tika tika = new Tika();
 
     public StorageService(S3Client s3Client,
@@ -39,6 +49,8 @@ public class StorageService {
         this.bucketName = bucketName;
         this.folder = folder;
         this.endpoint = endpoint;
+        this.keyPropiaPattern = Pattern.compile(
+                Pattern.quote(folder) + "/(" + String.join("|", SUBCARPETAS) + ")/[A-Za-z0-9][A-Za-z0-9._-]*");
     }
 
     public String uploadFile(MultipartFile file, String subfolder) {
@@ -64,20 +76,60 @@ public class StorageService {
         }
     }
 
+    /**
+     * Borra el archivo si la URL apunta a un archivo propio de la app (ver {@link #keyDeUrlPropia}).
+     * Cualquier otra URL se ignora: el bucket puede estar compartido con otros proyectos.
+     */
     public void deleteFile(String fileUrl) {
-        if (fileUrl == null || fileUrl.isBlank()) return;
+        keyDeUrlPropia(fileUrl).ifPresent(this::deleteKey);
+    }
 
-        String prefix = endpoint + "/" + bucketName + "/";
-        if (!fileUrl.startsWith(prefix)) return;
-
-        String key = fileUrl.substring(prefix.length());
-
-        DeleteObjectRequest request = DeleteObjectRequest.builder()
+    /** Borra un objeto por su key, solo si está dentro de las subcarpetas de la app. */
+    public void deleteKey(String key) {
+        if (!esKeyPropia(key)) {
+            throw new IllegalArgumentException("Key fuera de la carpeta de la app: " + key);
+        }
+        s3Client.deleteObject(DeleteObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
-                .build();
+                .build());
+    }
 
-        s3Client.deleteObject(request);
+    /**
+     * Devuelve la key si la URL es exactamente la de un archivo subido por la app:
+     * {endpoint}/{bucket}/{folder}/(imagenes|musica)/{nombre}, sin subcarpetas ni "..".
+     */
+    public Optional<String> keyDeUrlPropia(String fileUrl) {
+        if (fileUrl == null) return Optional.empty();
+        String prefix = endpoint + "/" + bucketName + "/";
+        if (!fileUrl.startsWith(prefix)) return Optional.empty();
+        String key = fileUrl.substring(prefix.length());
+        return esKeyPropia(key) ? Optional.of(key) : Optional.empty();
+    }
+
+    /** True si la key corresponde a un archivo de {folder}/imagenes/ o {folder}/musica/. */
+    public boolean esKeyPropia(String key) {
+        return key != null && keyPropiaPattern.matcher(key).matches();
+    }
+
+    /**
+     * Lista todos los objetos bajo {folder}/, recorriendo las páginas del listado.
+     */
+    public List<S3Object> listarArchivos() {
+        List<S3Object> objetos = new ArrayList<>();
+        String continuationToken = null;
+        do {
+            ListObjectsV2Response respuesta = s3Client.listObjectsV2(ListObjectsV2Request.builder()
+                    .bucket(bucketName)
+                    .prefix(folder + "/")
+                    .continuationToken(continuationToken)
+                    .build());
+            objetos.addAll(respuesta.contents());
+            continuationToken = Boolean.TRUE.equals(respuesta.isTruncated())
+                    ? respuesta.nextContinuationToken()
+                    : null;
+        } while (continuationToken != null);
+        return objetos;
     }
 
     private void validateFile(MultipartFile file, String subfolder) {

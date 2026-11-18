@@ -13,16 +13,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 @Service
 public class EstadoAnimoService implements IEstadoAnimoService {
 
     private final EstadoAnimoRepository repository;
     private final FraseRepository fraseRepository;
+    private final ArchivoService archivoService;
 
-    public EstadoAnimoService(EstadoAnimoRepository repository, FraseRepository fraseRepository) {
+    public EstadoAnimoService(EstadoAnimoRepository repository, FraseRepository fraseRepository,
+                              ArchivoService archivoService) {
         this.repository = repository;
         this.fraseRepository = fraseRepository;
+        this.archivoService = archivoService;
     }
 
     @Override
@@ -70,6 +75,8 @@ public class EstadoAnimoService implements IEstadoAnimoService {
             throw new BadRequestException("error.codigo.immutable");
         }
 
+        List<String> urlsAnteriores = archivosDe(estado);
+
         estado.setEmoji(request.emoji());
         estado.setIconUrl(request.iconUrl());
         estado.setMusicaUrl(request.musicaUrl());
@@ -80,20 +87,34 @@ public class EstadoAnimoService implements IEstadoAnimoService {
         estado.setAnimationType(request.animationType());
         estado.sincronizarTraducciones(traducciones);
 
-        return EstadoAnimoDTO.fromEntity(repository.save(estado), locale);
+        EstadoAnimo guardado = repository.saveAndFlush(estado);
+        List<String> liberadas = urlsAnteriores.stream()
+                .filter(url -> !archivosDe(guardado).contains(url))
+                .toList();
+        archivoService.programarBorradoSiHuerfanos(liberadas);
+
+        return EstadoAnimoDTO.fromEntity(guardado, locale);
+    }
+
+    private static List<String> archivosDe(EstadoAnimo estado) {
+        return Stream.of(estado.getIconUrl(), estado.getMusicaUrl(), estado.getImagenUrl())
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     @Override
     @Transactional
     public void eliminar(Long id) {
-        if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("error.estadoanimo.notfound", id);
-        }
+        EstadoAnimo estado = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("error.estadoanimo.notfound", id));
         // Borrar un estado no debe arrastrar sus frases: se exige reasignarlas o borrarlas antes.
         long frases = fraseRepository.countByEstadoAnimoId(id);
         if (frases > 0) {
             throw new BadRequestException("error.estadoanimo.hasfrases", frases);
         }
-        repository.deleteById(id);
+        List<String> urls = archivosDe(estado);
+        repository.delete(estado);
+        repository.flush();
+        archivoService.programarBorradoSiHuerfanos(urls);
     }
 }
